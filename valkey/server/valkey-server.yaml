@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: valkey-deployment
+  labels:
+    apps: valkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: valkey
+  template:
+    metadata:
+      labels:
+        app: valkey
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: transact01
+
+      # 3) Main containers (valkey + redis-exporter)
+      containers:
+        - name: valkey
+          image: ci.tno.nl:4567/techflex/techflex-delivery/bruno-valkey-server:0.0.1
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 6379
+          env:
+            - name: VALKEY_AOF_ENABLED
+              value: "no"
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: "1"
+            requests:
+              memory: 1Gi
+              cpu: "1"
+
+        # - name: redis-exporter
+        #   image: oliver006/redis_exporter:latest
+        #   securityContext:
+        #     runAsUser: 59000
+        #     runAsGroup: 59000
+        #     allowPrivilegeEscalation: false
+        #     capabilities:
+        #       drop:
+        #         - ALL
+        #   resources:
+        #     requests:
+        #       cpu: 100m
+        #       memory: 100Mi
+        #   ports:
+        #     - containerPort: 9121
+
+      imagePullSecrets:
+        - name: bruno-registry
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey-service
+  labels:
+    app: valkey
+spec:
+  ports:
+  - name: valkey-port
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  - name: metrics
+    port: 9121
+    targetPort: 9121
+  selector:
+    app: valkey
+  sessionAffinity: None
+---
+# apiVersion: monitoring.coreos.com/v1
+# kind: ServiceMonitor
+# metadata:
+#   name: valkey-monitor
+#   labels:
+#     app: valkey
+# spec:
+#   endpoints:
+#   - interval: 1s
+#     port: metrics
+#   selector:
+#     matchLabels:
+#       app: valkey
