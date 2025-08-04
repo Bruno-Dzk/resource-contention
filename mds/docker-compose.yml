@@ -1,0 +1,38 @@
+networks:
+  my-net:
+    external: true
+
+services:
+  etcd:
+    image: gcr.io/etcd-development/etcd:v3.3.27
+    container_name: etcd
+    cpuset: "1"
+    ports:
+      - "2379:2379"
+    networks:
+      - my-net
+    environment:
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379
+
+  datagen:
+    image: ghcr.io/bruno-uva/datagen:latest
+    container_name: datagen
+    cpuset: "2"
+    ports:
+      - "9605:9605"
+    networks:
+      - my-net
+    environment:
+      - PUBSUB_DISCOVERY_ETCD_SERVER_IP=etcd
+
+  datafwd:
+    image: ghcr.io/bruno-uva/datafwd:latest
+    container_name: datafwd
+    cpuset: "3"
+    ports:
+      - "9606:9606"
+    networks:
+      - my-net
+    environment:
+      - PUBSUB_DISCOVERY_ETCD_SERVER_IP=etcd

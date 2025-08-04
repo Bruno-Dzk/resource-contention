@@ -1,6 +1,6 @@
-podman rm -f prometheus
+docker rm -f prometheus
 
-podman run -d \
+docker run -d \
   --name prometheus \
   -p 9090:9090 \
   --network=my-net \

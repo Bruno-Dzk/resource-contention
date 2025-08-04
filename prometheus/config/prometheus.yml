@@ -1,12 +1,21 @@
 # prometheus.yml
 global:
-  scrape_interval: 15s    # how often to scrape targets by default
+  scrape_interval: 15s
   evaluation_interval: 15s
 
 scrape_configs:
   - job_name: 'valkey-client'
     scrape_interval: 10s
-    metrics_path: /metrics    # default, change if your app exposes elsewhere
+    metrics_path: /metrics
     static_configs:
-      - targets: ['valkey-client:3003']  
-        # replace with your endpoint, e.g. 'myapp:9000' or 'localhost:9100'
+      - targets: ['valkey-client-isolated:3003']  
+  - job_name: 'datagen'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['datagen:9605']  
+  - job_name: 'datafwd'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['datafwd:9606']  

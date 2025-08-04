@@ -5,9 +5,9 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
-
-	// "runtime/debug"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -19,7 +19,7 @@ import (
 
 func getBuckets() []float64 {
 	res := []float64{}
-	for i := 10; i <= 1000; i += 10 {
+	for i := 0; i <= 10000; i += 100 {
 		res = append(res, float64(i))
 	}
 	return res
@@ -39,136 +39,118 @@ var (
 	)
 )
 
-// var (
-// 	client      valkey.Client
-// 	reqDuration = promauto.NewSummaryVec(
-// 		prometheus.SummaryOpts{
-// 			Name: "req_duration_nanos",
-// 			Help: "Latency of calls to valkey.Client in microseconds.",
-// 			Objectives: map[float64]float64{
-// 				0.5:  0.001, // 50th percentile with 0.1% tolerated error
-// 			},
-// 			MaxAge: time.Minute * 1, // Expire after 1 minute
-// 		},
-// 		[]string{"test-id"},
-// 	)
-// )
-
-// const N = 2_000_000
-
-// func handleRequest(w http.ResponseWriter, req *http.Request) {
-// 	params := mux.Vars(req)
-// 	testId := params["test-id"]
-
-// 	arr := make([]float64, N)
-
-// 	start := time.Now()
-
-// 	for i := 0; i < N / 2; i++ {
-// 		arr[i] = arr[i + N / 2] * 3.0
-// 	}
-
-// 	for i := N / 2; i < N; i++ {
-// 		arr[i] = arr[i - N / 2] * 3.0
-// 	}
-
-// 	elapsed := time.Since(start).Microseconds()
-// 	reqDuration.WithLabelValues(testId).Observe(float64(elapsed))
-
-// 	w.Header().Set("Content_Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-
-// 	res := struct{Duration int}{Duration: int(elapsed)}
-// 	json.NewEncoder(w).Encode(res)
-// }
-
-const N_KEYS = 100_000
+const N_KEYS = 1000
 
 var keys = make([]string, N_KEYS)
-var are_keys_initialized = false
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func randSeq(n int) string {
-    b := make([]rune, n)
-    for i := range b {
-        b[i] = letters[rand.Intn(len(letters))]
-    }
-    return string(b)
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
 
-const VALUE_SIZE = 1600
+const DEFAULT_VALUE_SIZE = 400_000
+
+func getDbSize(ctx context.Context) (int64, error) {
+	cmd := client.B().Dbsize().Build()
+	size, err := client.Do(ctx, cmd).AsInt64()
+	if err != nil {
+		return -1, err
+	}
+	return size, nil
+}
+
+func flushAll(ctx context.Context) error {
+	cmd := client.B().Flushall().Build()
+	return client.Do(ctx, cmd).Error()
+}
 
 func initKeys(w http.ResponseWriter, req *http.Request) {
-	if are_keys_initialized {
-		http.Error(w, "Keys already initialized", http.StatusConflict)
+	ctx := context.Background()
+	dbSize, err := getDbSize(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	ctx := context.Background()
+	if dbSize != 0 {
+		err := flushAll(ctx)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	valueSize, err := strconv.Atoi(os.Getenv("VALUE_SIZE"))
+	if err != nil {
+		valueSize = DEFAULT_VALUE_SIZE
+	}
 
 	for i := 0; i < N_KEYS; i++ {
 		key := uuid.New().String()
 		keys[i] = key
-		
-		value := randSeq(VALUE_SIZE)
+
+		value := randSeq(valueSize)
 		setCmd := client.B().Set().Key(key).Value(value).Build()
 
 		err := client.Do(ctx, setCmd).Error()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-
-		are_keys_initialized = true
-		w.Header().Set("Content_Type", "application/json")
-		w.WriteHeader(http.StatusOK)
 	}
+
+	w.Header().Set("Content_Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
-var clientChan = make(chan string)
+const KEYS_PER_REQUEST = 50
 
-func valkeyClient(ch chan string) {
+func handleRequest(w http.ResponseWriter, _ *http.Request) {
+	ctx := context.Background()
+	cmds := make(valkey.Commands, 0, KEYS_PER_REQUEST)
+	for i := 0; i < KEYS_PER_REQUEST; i++ {
+		key := keys[rand.Intn(N_KEYS)]
+		cmds = append(cmds, client.B().Get().Key(key).Build())
+		
+	}
+
+	start := time.Now()
+	for _, resp := range client.DoMulti(ctx, cmds...) {
+		if err := resp.Error(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	elapsed := time.Since(start).Microseconds()
+	reqDuration.WithLabelValues("fixed").Observe(float64(elapsed))
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func init() {
+	clientUrl := os.Getenv("CLIENT_URL")
+	if clientUrl == "" {
+		panic("Client url not set")
+	}
+
 	var err error
 	client, err = valkey.NewClient(
 		valkey.ClientOption{
-			InitAddress: []string{"valkey-server-clone:6379"},
+			InitAddress: []string{clientUrl},
 			ClusterOption: valkey.ClusterOption{
 				ShardsRefreshInterval: 0,
 			},
-			DisableCache:         true,
+			DisableCache:          true,
 			DisableAutoPipelining: true,
 		},
 	)
 	if err != nil {
 		panic(err)
-	}
-
-	ctx := context.Background()
-
-	for key := range ch {
-		getCmd := client.B().Get().Key(key).Build()
-
-		start := time.Now()
-		client.Do(ctx, getCmd).ToString()
-
-		elapsed := time.Since(start).Microseconds()
-		reqDuration.WithLabelValues("fixed").Observe(float64(elapsed))
-	}
-}
-
-func handleRequest(w http.ResponseWriter, _ *http.Request) {
-	
-	key := keys[rand.Intn(N_KEYS)]
-	clientChan <- key
-
-	w.WriteHeader(http.StatusOK)
-}
-
-const NUM_CLIENTS = 5000
-
-func init() {
-	// debug.SetGCPercent(80)
-	for i := 0; i < NUM_CLIENTS; i++ {
-		go valkeyClient(clientChan)
 	}
 }
 
