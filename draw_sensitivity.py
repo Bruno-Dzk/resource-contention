@@ -1,0 +1,53 @@
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+
+def main():
+    labels, dfs = get_data()
+
+    n = len(dfs)
+    cols = math.ceil(math.sqrt(n))
+    rows = math.ceil(n / cols)
+
+    _, axes = plt.subplots(
+        nrows=rows,
+        ncols=cols,
+        figsize=(16,10),
+        sharex=True,
+        sharey=True,
+    )
+
+    if len(dfs) == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+
+    for ax, df, label in zip(axes, dfs, labels):
+        # Normalize the series
+        df['runtime'] = df['runtime'][0] / df['runtime']
+        ax.plot(df["footprint_mb"], df["runtime"], marker="o", markersize=4)
+        ax.set_title(label)
+        ax.set_xlabel("MemBW footprint (MB)")
+        ax.set_ylabel("Performance (norm.)")
+        xticks = np.arange(0, 30, 2)
+        ax.set_xticks(xticks)
+        ax.set_xlim([0, 28])
+        ax.grid(True)
+
+    plt.tight_layout()
+    output_path = "./sensitivity.png"
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+
+
+def get_data() -> tuple[list[str], list[pd.DataFrame]]:
+    csv_files = [f for f in os.listdir(".") if f.endswith(".csv")]
+    labels = [f.split("_")[1] for f in csv_files]
+    dfs = [pd.read_csv(f, delimiter=" ") for f in csv_files]
+    return labels, dfs
+
+
+if __name__ == "__main__":
+    main()
