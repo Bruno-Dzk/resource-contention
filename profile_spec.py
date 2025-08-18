@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import time
 from collections import defaultdict
+import spec
 
 # INTRATE = [
 #     "500.perlbench_r",
@@ -45,63 +46,82 @@ FPSPEED = [
 
 SPEC_UNDER_PROFILING_CORES = "0-3"
 SPEC_IN_BACKGROUND_CORES = "4-7"
-SPEC_SIZE = "test"
+SPEC_SIZE = "train" # "test"
 SLEDGE_CORES = "4-7"
 REPORTER_CORES = "0"
 REPETITIONS = 10
+RESULTS_PATH = 'results'
 
 ITERATIONS = 30
 STEP_MB = 1
 SLEDGE_ELEM_SIZE = 8
 
+def run_sledge(size: int) -> subprocess.Popen:
+    size_sledge = size * STEP_MB * 1_000_000 // SLEDGE_ELEM_SIZE
+    print(f"Running sledge with footprint size {size_sledge}")
+    subprocess.run(
+        [
+            "gcc",
+            "-O2",
+            "-fopenmp",
+            f"-DLBM_SIZE={size_sledge}",
+            "sledge.c",
+            "-o",
+            "sledge",
+        ],
+        stdin=subprocess.DEVNULL,
+    )
+    return subprocess.Popen(
+        [
+            "sudo",
+            "nice",
+            "-n",
+            "-20",
+            "taskset",
+            "-c",
+            f"{SLEDGE_CORES}",
+            "./sledge",
+        ],
+        stdin=subprocess.DEVNULL,
+    )
+
+def get_sensitivity(benchmark: str) -> dict[int, float]:
+    res = {}
+    benchmark_file = benchmark.replace(".", "_")
+    path = f"{RESULTS_PATH}/sensitivity/{benchmark_file}_data.csv"
+    if not os.path.exists(path):
+        return res
+    with open(path, "r+") as f:
+        next(f)
+        for line in f:
+            dial, perf = line.split(" ")
+            res[int(dial)] = float(perf)
+    return res
+
+def save_sensitivity(benchmark: str, sensitivity: dict[int, float]):
+    benchmark_file = benchmark.replace(".", "_")
+    with open(f"{RESULTS_PATH}/sensitivity/{benchmark_file}_data.csv", "w+") as f:
+        f.write("footprint_mb perf\n")
+        for k, v in sensitivity.items():
+            f.write(f"{k} {v}\n")
 
 def profile_with_sledge(benchmark_name: str) -> str:
-    data = defaultdict(dict)
+    sensitivity = get_sensitivity(benchmark_name)
+    print(sensitivity)
     for i in range(ITERATIONS):
-        size_sledge = i * STEP_MB * 1_000_000 // SLEDGE_ELEM_SIZE
         size_mb = i * STEP_MB
+        if size_mb in sensitivity:
+            continue
         sledge = None
         if i > 0:
-            print(f"Running sledge with footprint size {size_mb} MB")
-            subprocess.run(
-                [
-                    "gcc",
-                    "-O2",
-                    "-fopenmp",
-                    f"-DLBM_SIZE={size_sledge}",
-                    "sledge.c",
-                    "-o",
-                    "sledge",
-                ],
-                stdin=subprocess.DEVNULL,
-            )
-            sledge = subprocess.Popen(
-                [
-                    "sudo",
-                    "nice",
-                    "-n",
-                    "-20",
-                    "taskset",
-                    "-c",
-                    f"{SLEDGE_CORES}",
-                    "./sledge",
-                ],
-                stdin=subprocess.DEVNULL,
-            )
+            sledge = run_sledge(i)
         else:
             print("Profiling in isolation")
         benchmark_time = run_benchmark(benchmark_name)
-        data[size_mb]["runtime"] = benchmark_time
+        sensitivity[size_mb] = benchmark_time
         if sledge:
             os.kill(sledge.pid, 9)
-
-    df = pd.DataFrame.from_dict(data, orient="index")
-    df = df.reindex(sorted(df.columns), axis=1)
-    print(df)
-
-    csv_name = benchmark_name.replace('.', '_') + "_data.csv"
-    df.to_csv(csv_name, sep=" ")
-
+        save_sensitivity(benchmark_name, sensitivity)
 
 def get_output_filename(runcpu_output: str) -> str:
     for line in runcpu_output.splitlines():
@@ -121,29 +141,6 @@ def get_benchmark_time(output_file: str, benchmark_name: str):
             if line.strip().startswith(line_format):
                 return float(line.split(" ")[1])
         raise Exception("Benchmark reported time not found")
-    
-def run_background_benchmark(name: str) -> subprocess.Popen:
-    print(f"Running {name} in background")
-    return subprocess.Popen(
-        [
-            "sudo",
-            "nice",
-            "-n",
-            "-20",
-            "taskset",
-            "-c",
-            f"{SPEC_UNDER_PROFILING_CORES}",
-            "/home/bruno/cpu2017/bin/runcpu",
-            "--iterations=10000",
-            "--config=try1",
-            "--tuning=base",
-            f"--size={SPEC_SIZE}",
-            name,
-        ],
-        stdin=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL
-    )
 
 def run_benchmark(name: str) -> float:
     print(f"Running benchmark {name}")
@@ -207,8 +204,8 @@ def run_reporter() -> float:
 
 def get_contentiousness():
     data = {}
-    for name in FPSPEED:
-        proc = run_background_benchmark(name)
+    for name in FPSPEED + INTSPEED:
+        proc = spec.run_background_benchmark(name, '4-7', 'train')
         time.sleep(20)
         data[name] = run_reporter()
         os.kill(proc.pid, 9)
@@ -218,7 +215,9 @@ def get_contentiousness():
     df.to_csv("results/contentiousness.csv", sep=" ")
 
 def main() -> None:
-    get_contentiousness()
+    for bench in FPSPEED + INTSPEED:
+        profile_with_sledge(bench)
+    # get_contentiousness()
 
 if __name__ == "__main__":
     main()

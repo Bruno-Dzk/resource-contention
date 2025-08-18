@@ -37,6 +37,11 @@ def get_contentiousness():
             res[row[0]] = float(row[1])
     return res
 
+def save_contentiousness(scores: dict[float, int]):
+    with open("results/contentiousness_scores.csv", "w") as f:
+        for bench, score in scores.items():
+            f.write(f"{bench} {score}\n")
+
 def main():
     lookup = construct_sensitivity_lookup()
     cont = get_contentiousness()
@@ -44,6 +49,9 @@ def main():
     for bench, perf in cont.items():
         dial = find_dial(perf, lookup)
         data[bench] = dial
+
+    print(data)
+    save_contentiousness(data)
 
         # Extract keys and values
     labels = list(data.keys())
@@ -58,7 +66,7 @@ def main():
     ]
 
     # Create the column chart
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(20, 12))
     bars = plt.bar(labels, values)
 
     plt.tick_params(axis='x', length=0)

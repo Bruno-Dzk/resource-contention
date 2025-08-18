@@ -26,8 +26,8 @@ def main():
 
     for ax, df, label in zip(axes, dfs, labels):
         # Normalize the series
-        df['runtime'] = df['runtime'][0] / df['runtime']
-        ax.plot(df["footprint_mb"], df["runtime"], marker="o", markersize=4)
+        df['perf'] = df['perf'][0] / df['perf']
+        ax.plot(df["footprint_mb"], df["perf"], marker="o", markersize=4)
         ax.set_title(label)
         ax.set_xlabel("MemBW footprint (MB)")
         ax.set_ylabel("Performance (norm.)")
@@ -43,7 +43,7 @@ def main():
 
 
 def get_data() -> tuple[list[str], list[pd.DataFrame]]:
-    csv_files = [f for f in os.listdir(".") if f.endswith(".csv")]
+    csv_files = ["results/sensitivity/" + f for f in os.listdir("results/sensitivity") if f.endswith(".csv")]
     labels = [f.split("_")[1] for f in csv_files]
     dfs = [pd.read_csv(f, delimiter=" ") for f in csv_files]
     return labels, dfs
