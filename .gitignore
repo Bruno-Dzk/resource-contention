@@ -3,3 +3,5 @@ venv
 .DS_Store
 sledge
 spec-cmd.log
+__pycache__
+__pycache__/*

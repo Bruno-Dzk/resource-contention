@@ -11,7 +11,7 @@ def main():
     cols = math.ceil(math.sqrt(n))
     rows = math.ceil(n / cols)
 
-    _, axes = plt.subplots(
+    fig, axes = plt.subplots(
         nrows=rows,
         ncols=cols,
         figsize=(16,10),
@@ -35,6 +35,9 @@ def main():
         ax.set_xticks(xticks)
         ax.set_xlim([0, 28])
         ax.grid(True)
+
+    for ax in axes[n:]:
+        fig.delaxes(ax)
 
     plt.tight_layout()
     output_path = "./sensitivity.png"

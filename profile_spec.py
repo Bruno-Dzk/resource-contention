@@ -35,7 +35,7 @@ FPSPEED = [
     "603.bwaves_s",
     "607.cactuBSSN_s",
     "619.lbm_s",
-    # "621.wrf_s",
+    "621.wrf_s",
     "627.cam4_s",
     "628.pop2_s",
     "638.imagick_s",
@@ -46,15 +46,16 @@ FPSPEED = [
 
 SPEC_UNDER_PROFILING_CORES = "0-3"
 SPEC_IN_BACKGROUND_CORES = "4-7"
-SPEC_SIZE = "train" # "test"
+SPEC_SIZE = "train"  # "test"
 SLEDGE_CORES = "4-7"
 REPORTER_CORES = "0"
 REPETITIONS = 10
-RESULTS_PATH = 'results'
+RESULTS_PATH = "results"
 
 ITERATIONS = 30
 STEP_MB = 1
 SLEDGE_ELEM_SIZE = 8
+
 
 def run_sledge(size: int) -> subprocess.Popen:
     size_sledge = size * STEP_MB * 1_000_000 // SLEDGE_ELEM_SIZE
@@ -85,6 +86,7 @@ def run_sledge(size: int) -> subprocess.Popen:
         stdin=subprocess.DEVNULL,
     )
 
+
 def get_sensitivity(benchmark: str) -> dict[int, float]:
     res = {}
     benchmark_file = benchmark.replace(".", "_")
@@ -98,12 +100,14 @@ def get_sensitivity(benchmark: str) -> dict[int, float]:
             res[int(dial)] = float(perf)
     return res
 
+
 def save_sensitivity(benchmark: str, sensitivity: dict[int, float]):
     benchmark_file = benchmark.replace(".", "_")
     with open(f"{RESULTS_PATH}/sensitivity/{benchmark_file}_data.csv", "w+") as f:
         f.write("footprint_mb perf\n")
         for k, v in sensitivity.items():
             f.write(f"{k} {v}\n")
+
 
 def profile_with_sledge(benchmark_name: str) -> str:
     sensitivity = get_sensitivity(benchmark_name)
@@ -123,6 +127,7 @@ def profile_with_sledge(benchmark_name: str) -> str:
             os.kill(sledge.pid, 9)
         save_sensitivity(benchmark_name, sensitivity)
 
+
 def get_output_filename(runcpu_output: str) -> str:
     for line in runcpu_output.splitlines():
         line = line.strip()
@@ -141,6 +146,7 @@ def get_benchmark_time(output_file: str, benchmark_name: str):
             if line.strip().startswith(line_format):
                 return float(line.split(" ")[1])
         raise Exception("Benchmark reported time not found")
+
 
 def run_benchmark(name: str) -> float:
     print(f"Running benchmark {name}")
@@ -173,7 +179,8 @@ def run_benchmark(name: str) -> float:
         errors = proc.stderr.decode("utf-8")
         print(errors)
         raise Exception
-    
+
+
 def run_reporter() -> float:
     print("Profiling with the reporter")
     reporter = subprocess.run(
@@ -196,28 +203,36 @@ def run_reporter() -> float:
     output = reporter.stdout.decode("utf-8")
     res = {}
     for line in output.splitlines():
-            if "median" in line:
-                print(line.strip())
-                line = line.split()
-                res[line[0]] = float(line[1])
-    return sum(res.values()) / len(res)
+        if "median" in line:
+            print(line.strip())
+            line = line.split()
+            res[line[0]] = float(line[1])
+    return {
+        "avg": sum(res.values()) / len(res),
+        "rand": res["rand_smash_median"],
+        "stream": res["smash_median"],
+    }
+
 
 def get_contentiousness():
     data = {}
     for name in FPSPEED + INTSPEED:
-        proc = spec.run_background_benchmark(name, '4-7', 'train')
+        proc = spec.run_background_benchmark(name, "4-7", "train")
         time.sleep(20)
         data[name] = run_reporter()
+        print(data[name])
         os.kill(proc.pid, 9)
 
     print(data)
-    df = pd.DataFrame.from_dict(data, orient='index')
+    df = pd.DataFrame.from_dict(data, orient="index")
     df.to_csv("results/contentiousness.csv", sep=" ")
+
 
 def main() -> None:
     for bench in FPSPEED + INTSPEED:
         profile_with_sledge(bench)
     # get_contentiousness()
+
 
 if __name__ == "__main__":
     main()

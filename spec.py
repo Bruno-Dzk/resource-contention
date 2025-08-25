@@ -2,7 +2,7 @@ import subprocess
 import os
 
 def run_background_benchmark(name: str, cores: str, size: str) -> subprocess.Popen:
-    print(f"Running {name} in background")
+    print(f"Running {name} in background, size = {size}")
     return subprocess.Popen(
         [
             "sudo",
