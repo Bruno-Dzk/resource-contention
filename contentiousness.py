@@ -5,9 +5,11 @@ import numpy as np
 import math
 import csv
 
+RESULTS_DIR = 'test_results'
+
 def construct_sensitivity_lookup():
     res = []
-    with open('results/reporter_sensitivity.csv', 'r') as f:
+    with open(f'{RESULTS_DIR}/reporter_sensitivity.csv', 'r') as f:
         reader = csv.reader(f, delimiter=" ")
         next(reader)
         for row in reader:
@@ -30,7 +32,7 @@ def find_dial(sample_perf: float, lookup: list[tuple[float, int]]) -> int:
 
 def get_contentiousness():
     res = {}
-    with open("results/contentiousness.csv", 'r') as f:
+    with open(f"{RESULTS_DIR}/contentiousness.csv", 'r') as f:
         reader = csv.reader(f, delimiter=" ")
         next(reader)
         for row in reader:
@@ -38,7 +40,7 @@ def get_contentiousness():
     return res
 
 def save_contentiousness(scores: dict[float, int]):
-    with open("results/contentiousness_scores.csv", "w") as f:
+    with open(f"{RESULTS_DIR}/contentiousness_scores.csv", "w") as f:
         for bench, score in scores.items():
             f.write(f"{bench} {score}\n")
 
@@ -87,7 +89,7 @@ def main():
 
     # Display the chart
     plt.tight_layout()
-    output_path = "./contentiousness.png"
+    output_path = f"{RESULTS_DIR}/contentiousness.png"
     plt.savefig(output_path, dpi=300)
     plt.close()
 

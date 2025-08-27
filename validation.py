@@ -6,8 +6,10 @@ import csv
 import time
 from typing import Union
 from collections import namedtuple
+import constants
 
 SPEC_SIZE = "train"
+RESULTS_DIR = "test_results"
 
 Prediction = namedtuple("Prediction", ("name1", "name2", "expected1", "expected2"))
 ValidatedPrediction = namedtuple(
@@ -20,7 +22,7 @@ def get_key(prediction: Union[Prediction, ValidatedPrediction]) -> str:
 
 
 def read_predictions() -> list[Prediction]:
-    with open("results/predictions.json", "r") as f:
+    with open(f"{RESULTS_DIR}/predictions.json", "r") as f:
         data = json.load(f)["predictions"]
         return [
             Prediction(p[0]["name"], p[1]["name"], p[0]["perf"], p[1]["perf"])
@@ -30,12 +32,18 @@ def read_predictions() -> list[Prediction]:
 
 def profile_pair(primary: str, competitor: str) -> float:
     print(f"Starting profiling for pair ({primary}, {competitor})")
-    isolated_perf = spec.run_benchmark(primary, "0-3", SPEC_SIZE)
+    isolated_perf = spec.run_benchmark(
+        primary, constants.WORKLOAD_UNDER_PROFILING_CORES, SPEC_SIZE
+    )
     print(isolated_perf)
-    competitor_proc = spec.run_background_benchmark(competitor, "4-7", SPEC_SIZE)
+    competitor_proc = spec.run_background_benchmark(
+        competitor, constants.WORKLOAD_IN_BACKGROUND_CORES, SPEC_SIZE
+    )
     time.sleep(20)
     try:
-        perf = spec.run_benchmark(primary, "0-3", SPEC_SIZE)
+        perf = spec.run_benchmark(
+            primary, constants.WORKLOAD_UNDER_PROFILING_CORES, SPEC_SIZE
+        )
         print(perf)
         return isolated_perf / perf
     finally:
@@ -43,7 +51,9 @@ def profile_pair(primary: str, competitor: str) -> float:
 
 
 def read_snapshot() -> dict[str, ValidatedPrediction]:
-    with open(VALIDATION_FILE, "r+") as f:
+    if not os.path.exists(VALIDATION_FILE):
+        return {}
+    with open(VALIDATION_FILE, "r") as f:
         data = {}
         reader = csv.DictReader(f, delimiter=" ")
         for row in reader:
@@ -58,7 +68,7 @@ def validate_prediction(prediction: Prediction):
     return ValidatedPrediction(actual1=actual1, actual2=actual2, *prediction)
 
 
-VALIDATION_FILE = "results/validated.csv"
+VALIDATION_FILE = f"{RESULTS_DIR}/validated.csv"
 
 
 def writerow_and_sync(f, writer, row):
@@ -69,10 +79,7 @@ def writerow_and_sync(f, writer, row):
 
 def main():
     snapshot = read_snapshot()
-    # predictions = read_predictions()
-    predictions = [Prediction(name1="628.pop2_s", name2="654.roms_s", expected1=0.0, expected2=0.0)]
-    # predictions = random.sample(predictions, 30)
-    # res = []
+    predictions = read_predictions()
     with open(VALIDATION_FILE, "a+") as f:
         f.seek(0)
         is_empty = f.read(1) == ""
@@ -127,7 +134,4 @@ def update():
 #             f.write(f"{p[0]['name']} {p[1]['name']} {p[0]['perf']} {p[1]['perf']} {p[0]['actual']} {p[1]['actual']}\n")
 
 if __name__ == "__main__":
-    # print(read_validation())
     main()
-    # update()
-    # fx()

@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+RESULTS_PATH = 'test_results'
+
 def main():
     labels, dfs = get_data()
 
@@ -31,23 +33,23 @@ def main():
         ax.set_title(label)
         ax.set_xlabel("MemBW footprint (MB)")
         ax.set_ylabel("Performance (norm.)")
-        xticks = np.arange(0, 30, 2)
+        xticks = np.arange(0, 128, 16)
         ax.set_xticks(xticks)
-        ax.set_xlim([0, 28])
+        ax.set_xlim([0, 112])
         ax.grid(True)
 
     for ax in axes[n:]:
         fig.delaxes(ax)
 
     plt.tight_layout()
-    output_path = "./sensitivity.png"
+    output_path = f"{RESULTS_PATH}/sensitivity.png"
     plt.savefig(output_path, dpi=300)
     plt.close()
 
 
 def get_data() -> tuple[list[str], list[pd.DataFrame]]:
-    csv_files = ["results/sensitivity/" + f for f in os.listdir("results/sensitivity") if f.endswith(".csv")]
-    labels = [f.split("_")[1] for f in csv_files]
+    csv_files = [f"{RESULTS_PATH}/sensitivity/" + f for f in os.listdir(f"{RESULTS_PATH}/sensitivity") if f.endswith(".csv")]
+    labels = [f.split("_")[2] for f in csv_files]
     dfs = [pd.read_csv(f, delimiter=" ") for f in csv_files]
     return labels, dfs
 

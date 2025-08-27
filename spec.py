@@ -1,6 +1,25 @@
 import subprocess
 import os
 
+from workload import Workload
+
+class SpecWorkload(Workload):
+    def __init__(self, name, size="train"):
+        self.size = size
+        self.proc = None
+        super().__init__(name)
+
+    def run_once(self, cores: str) -> float:
+        return run_benchmark(self.name, cores, self.size)
+
+    def run(self, cores: str) -> None:
+        self.proc = run_background_benchmark(self.name, cores, self.size)
+
+    def stop(self) -> None:
+        if not self.proc:
+            raise Exception(f"No instance of SPEC CPU workload {self.name} found")
+        os.kill(self.proc.pid, 9)
+
 def run_background_benchmark(name: str, cores: str, size: str) -> subprocess.Popen:
     print(f"Running {name} in background, size = {size}")
     return subprocess.Popen(
@@ -25,7 +44,7 @@ def run_background_benchmark(name: str, cores: str, size: str) -> subprocess.Pop
     )
 
 def run_benchmark(name: str, cores: str, size: str) -> float:
-    print(f"Running benchmark {name}")
+    print(f"Running benchmark {name}, size = {size}")
     proc = subprocess.run(
         [
             "sudo",

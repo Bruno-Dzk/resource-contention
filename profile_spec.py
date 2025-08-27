@@ -35,7 +35,7 @@ FPSPEED = [
     "603.bwaves_s",
     "607.cactuBSSN_s",
     "619.lbm_s",
-    "621.wrf_s",
+    # "621.wrf_s",
     "627.cam4_s",
     "628.pop2_s",
     "638.imagick_s",

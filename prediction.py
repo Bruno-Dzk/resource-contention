@@ -1,10 +1,11 @@
 import itertools
 import json
 
+RESULTS_DIR = "test_results"
 
 def get_contentiousness() -> dict[str, int]:
     scores = {}
-    with open("results/contentiousness_scores.csv", "r") as f:
+    with open(f"{RESULTS_DIR}/contentiousness_scores.csv", "r") as f:
         for line in f:
             bench, score = line.split(" ")
             scores[bench] = int(score)
@@ -14,7 +15,7 @@ def get_contentiousness() -> dict[str, int]:
 def get_sensitivity(benchmark: str) -> dict[int, float]:
     res = {}
     benchmark_file = benchmark.replace(".", "_")
-    with open(f"results/sensitivity/{benchmark_file}_data.csv", "r") as f:
+    with open(f"{RESULTS_DIR}/sensitivity/{benchmark_file}_data.csv", "r") as f:
         next(f)
         for line in f:
             dial, perf = line.split(" ")
@@ -37,7 +38,7 @@ def pairwise_prediction(
     )
 
 
-def main():
+def calculate_predictions():
     scores = get_contentiousness()
     benchmarks = list(scores.keys())
     pairs = list(itertools.combinations(benchmarks, 2))
@@ -51,9 +52,9 @@ def main():
 
     json_data = json.dumps({"predictions": res})
 
-    with open("results/predictions.json", "w") as f:
+    with open(f"{RESULTS_DIR}/predictions.json", "w") as f:
         f.write(json_data)
 
 
 if __name__ == "__main__":
-    main()
+    calculate_predictions()

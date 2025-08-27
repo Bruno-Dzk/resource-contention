@@ -36,7 +36,6 @@ void smash(benchmark::State& state) {
             mid[i]= scalar*bw_data[i];
         }
     }
-    
 }
 
 void rand_smash(benchmark::State& state) {
