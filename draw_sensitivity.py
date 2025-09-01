@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-RESULTS_PATH = 'test_results'
+import constants
 
 def main():
     labels, dfs = get_data()
@@ -42,13 +42,13 @@ def main():
         fig.delaxes(ax)
 
     plt.tight_layout()
-    output_path = f"{RESULTS_PATH}/sensitivity.png"
+    output_path = f"{constants.RESULTS_DIR}/sensitivity.png"
     plt.savefig(output_path, dpi=300)
     plt.close()
 
 
 def get_data() -> tuple[list[str], list[pd.DataFrame]]:
-    csv_files = [f"{RESULTS_PATH}/sensitivity/" + f for f in os.listdir(f"{RESULTS_PATH}/sensitivity") if f.endswith(".csv")]
+    csv_files = [f"{constants.RESULTS_DIR}/sensitivity/" + f for f in os.listdir(f"{constants.RESULTS_DIR}/sensitivity") if f.endswith(".csv")]
     labels = [f.split("_")[2] for f in csv_files]
     dfs = [pd.read_csv(f, delimiter=" ") for f in csv_files]
     return labels, dfs
