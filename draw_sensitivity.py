@@ -10,13 +10,13 @@ def main():
     labels, dfs = get_data()
 
     n = len(dfs)
-    cols = math.ceil(math.sqrt(n))
+    cols = 7 #math.ceil(math.sqrt(n))
     rows = math.ceil(n / cols)
 
     fig, axes = plt.subplots(
         nrows=rows,
         ncols=cols,
-        figsize=(16,10),
+        figsize=(16,7),
         sharex=True,
         sharey=True,
     )

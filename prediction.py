@@ -1,11 +1,11 @@
 import itertools
 import json
 
-RESULTS_DIR = "test_results"
+import constants
 
 def get_contentiousness() -> dict[str, int]:
     scores = {}
-    with open(f"{RESULTS_DIR}/contentiousness_scores.csv", "r") as f:
+    with open(f"{constants.RESULTS_DIR}/contentiousness_scores.csv", "r") as f:
         for line in f:
             bench, score = line.split(" ")
             scores[bench] = int(score)
@@ -15,7 +15,7 @@ def get_contentiousness() -> dict[str, int]:
 def get_sensitivity(benchmark: str) -> dict[int, float]:
     res = {}
     benchmark_file = benchmark.replace(".", "_")
-    with open(f"{RESULTS_DIR}/sensitivity/{benchmark_file}_data.csv", "r") as f:
+    with open(f"{constants.RESULTS_DIR}/sensitivity/{benchmark_file}_data.csv", "r") as f:
         next(f)
         for line in f:
             dial, perf = line.split(" ")
@@ -52,7 +52,7 @@ def calculate_predictions():
 
     json_data = json.dumps({"predictions": res})
 
-    with open(f"{RESULTS_DIR}/predictions.json", "w") as f:
+    with open(f"{constants.RESULTS_DIR}/predictions.json", "w") as f:
         f.write(json_data)
 
 

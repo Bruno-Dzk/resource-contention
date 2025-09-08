@@ -1,39 +1,38 @@
-import pandas as pd
 import time
-from collections import defaultdict
 
-import reporter
-from contention_synthesis import Bubble, Sledge
+import reporter as rp
+from contention_synthesis import Bubble
+import constants
 
 REPORTER_CORES = "0"
 REPETITIONS = 100
 
 DIAL_START = 0
-DIAL_STEP_MB = 2
+DIAL_STEP_MB = 4
 DIAL_END = 112
 
-def main():
-    data = defaultdict(dict)
-    for i in range(DIAL_START, DIAL_END + DIAL_STEP_MB, DIAL_STEP_MB):
-        size_mb = i * DIAL_STEP_MB
-        if size_mb == 0:
-            print("Profiling in isolation")
-            data[size_mb] = reporter.run_reporter(REPORTER_CORES)
-            continue
-        
-        bubble = Bubble(size_mb)
-        bubble.run()
-        time.sleep(10)
-        data[size_mb] = reporter.run_reporter(REPORTER_CORES)
-        print(data)
-        if bubble:
-            bubble.stop()
+reporter = rp.AveragingReporter("reporters/reporter")
 
-    df = pd.DataFrame.from_dict(data, orient="index")
-    df = df.reindex(sorted(df.columns), axis=1)
-    print(df)
 
-    df.to_csv("data.csv", sep=" ")
+def profile_sensitivity(size_mb: int) -> float:
+    if size_mb == 0:
+        print("Profiling in isolation")
+        return reporter.run(REPORTER_CORES)
+    bubble = Bubble(size_mb)
+    bubble.run()
+    time.sleep(5)
+    try:
+        return reporter.run(REPORTER_CORES)
+    finally:
+        bubble.stop()
+
+
+def profile_reporter():
+    with open(f"{constants.RESULTS_DIR}/reporter_sensitivity.csv", "a+") as f:
+        for size_mb in range(DIAL_START, DIAL_END + DIAL_STEP_MB, DIAL_STEP_MB):
+            perf = profile_sensitivity(size_mb)
+            f.write(f"{size_mb} {perf}\n")
+
 
 if __name__ == "__main__":
-    main()
+    profile_reporter()

@@ -1,32 +1,48 @@
+from abc import ABC, abstractmethod
+
 import subprocess
 
-def run_reporter(cores: str, repetitions: int = 10) -> float:
-    print("Profiling with the reporter")
-    reporter = subprocess.run(
-        [
-            "sudo",
-            "nice",
-            "-n",
-            "-19",
-            "taskset",
-            "-c",
-            f"{cores}",
-            "./reporter",
-            "--benchmark_min_warmup_time=1",
-            f"--benchmark_repetitions={repetitions}",
-            "--benchmark_enable_random_interleaving=true",
-        ],
-        capture_output=True,
-    )
-    output = reporter.stdout.decode("utf-8")
-    res = {}
-    for line in output.splitlines():
-        if "median" in line:
-            print(line.strip())
-            line = line.split()
-            res[line[0]] = float(line[1])
-    return {
-        "avg": sum(res.values()) / len(res),
-        "rand": res["rand_smash_median"],
-        "stream": res["smash_median"],
-    }
+class Reporter(ABC):
+    def __init__(self, script_file: str):
+        self.script_file = script_file
+
+    def run(self, cores: str, repetitions: int = 100):
+        print("Profiling with the reporter")
+        reporter = subprocess.run(
+            [
+                "sudo",
+                "nice",
+                "-n",
+                "-20",
+                "taskset",
+                "-c",
+                f"{cores}",
+                f"{self.script_file}",
+                "--benchmark_min_warmup_time=1",
+                f"--benchmark_repetitions={repetitions}",
+                "--benchmark_enable_random_interleaving=true",
+            ],
+            capture_output=True,
+        )
+        raw_output = reporter.stdout.decode("utf-8")
+        output = {}
+        for line in raw_output.splitlines():
+            if "median" in line:
+                print(line.strip())
+                line = line.split()
+                output[line[0]] = float(line[1])
+        return self.process_output(output)
+    
+    @abstractmethod
+    def process_output(self, output: dict[str, float]):
+        raise NotImplementedError
+    
+class SingleValueReporter(Reporter):
+    def process_output(self, output: dict[str, float]) -> float:
+        if len(output) != 1:
+            raise ValueError("Single value reporter returned multiple values")
+        return float(next(iter(output.values())))
+
+class AveragingReporter(Reporter):
+    def process_output(self, output: dict[str, float]) -> float:
+        return sum(output.values()) / len(output)

@@ -4,6 +4,7 @@ import pandas as pd
 import time
 from collections import defaultdict
 import spec
+import constants
 
 # INTRATE = [
 #     "500.perlbench_r",
@@ -50,7 +51,6 @@ SPEC_SIZE = "train"  # "test"
 SLEDGE_CORES = "4-7"
 REPORTER_CORES = "0"
 REPETITIONS = 10
-RESULTS_PATH = "results"
 
 ITERATIONS = 30
 STEP_MB = 1
@@ -90,7 +90,7 @@ def run_sledge(size: int) -> subprocess.Popen:
 def get_sensitivity(benchmark: str) -> dict[int, float]:
     res = {}
     benchmark_file = benchmark.replace(".", "_")
-    path = f"{RESULTS_PATH}/sensitivity/{benchmark_file}_data.csv"
+    path = f"{constants.RESULTS_DIR}/sensitivity/{benchmark_file}_data.csv"
     if not os.path.exists(path):
         return res
     with open(path, "r+") as f:
@@ -103,7 +103,7 @@ def get_sensitivity(benchmark: str) -> dict[int, float]:
 
 def save_sensitivity(benchmark: str, sensitivity: dict[int, float]):
     benchmark_file = benchmark.replace(".", "_")
-    with open(f"{RESULTS_PATH}/sensitivity/{benchmark_file}_data.csv", "w+") as f:
+    with open(f"{constants.RESULTS_DIR}/sensitivity/{benchmark_file}_data.csv", "w+") as f:
         f.write("footprint_mb perf\n")
         for k, v in sensitivity.items():
             f.write(f"{k} {v}\n")

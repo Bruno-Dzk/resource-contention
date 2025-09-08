@@ -9,7 +9,6 @@ from collections import namedtuple
 import constants
 
 SPEC_SIZE = "train"
-RESULTS_DIR = "test_results"
 
 Prediction = namedtuple("Prediction", ("name1", "name2", "expected1", "expected2"))
 ValidatedPrediction = namedtuple(
@@ -22,7 +21,7 @@ def get_key(prediction: Union[Prediction, ValidatedPrediction]) -> str:
 
 
 def read_predictions() -> list[Prediction]:
-    with open(f"{RESULTS_DIR}/predictions.json", "r") as f:
+    with open(f"{constants.RESULTS_DIR}/predictions.json", "r") as f:
         data = json.load(f)["predictions"]
         return [
             Prediction(p[0]["name"], p[1]["name"], p[0]["perf"], p[1]["perf"])
@@ -68,7 +67,7 @@ def validate_prediction(prediction: Prediction):
     return ValidatedPrediction(actual1=actual1, actual2=actual2, *prediction)
 
 
-VALIDATION_FILE = f"{RESULTS_DIR}/validated.csv"
+VALIDATION_FILE = f"{constants.RESULTS_DIR}/validated.csv"
 
 
 def writerow_and_sync(f, writer, row):
@@ -77,7 +76,7 @@ def writerow_and_sync(f, writer, row):
     os.fsync(f.fileno())  # force OS to write to disk
 
 
-def main():
+def validate_predictions():
     snapshot = read_snapshot()
     predictions = read_predictions()
     with open(VALIDATION_FILE, "a+") as f:
@@ -134,4 +133,6 @@ def update():
 #             f.write(f"{p[0]['name']} {p[1]['name']} {p[0]['perf']} {p[1]['perf']} {p[0]['actual']} {p[1]['actual']}\n")
 
 if __name__ == "__main__":
-    main()
+    # main()
+    validate_predictions()
+    # update()

@@ -4,7 +4,7 @@ networks:
 
 services:
   etcd:
-    image: gcr.io/etcd-development/etcd:v3.3.27
+    image: ghcr.io/etcd-development/etcd:v3.3.27
     container_name: etcd
     cpuset: "1"
     ports:

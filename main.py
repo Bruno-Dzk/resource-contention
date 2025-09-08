@@ -1,5 +1,11 @@
 import profile_workload
+import profile_reporter
+import contentiousness
+import prediction
+import validation
 from spec import SpecWorkload
+
+import reporter as rp
 
 SPEC_NAMES = [
     "600.perlbench_s",
@@ -24,8 +30,14 @@ SPEC_NAMES = [
 ]
 
 def main():
+    profile_reporter.profile_reporter()
     workloads = [SpecWorkload(name, size="train") for name in SPEC_NAMES]
-    profile_workload.profile_workloads(workloads)
+    profile_workload.profile_sensitivity(workloads)
+    reporter = rp.AveragingReporter("reporters/reporter")
+    profile_workload.profile_contentiousness(workloads, reporter)
+    contentiousness.generate_scores()
+    prediction.calculate_predictions()
+    validation.validate_predictions()
 
 if __name__ == '__main__':
     main()

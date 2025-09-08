@@ -1,23 +1,25 @@
 import os
 import pandas as pd
 import time
+from pathlib import Path
 
-from contention_synthesis import Sledge, Bubble
-import reporter
+import reporter as rp
+from contention_synthesis import Bubble
 import constants
 from workload import Workload
 
 REPORTER_CORES = "0"
-RESULTS_PATH = "test_results"
 
 DIAL_START_MB = 0
 DIAL_END_MB = 112
 DIAL_STEP_MB = 4
 
+SENSITIVITY_DIR = Path(constants.RESULTS_DIR) / 'sensitivity'
+
 def _get_sensitivity_data(workload_name: str) -> dict[int, float]:
     res = {}
     workload_file = workload_name.replace(".", "_")
-    path = f"{RESULTS_PATH}/sensitivity/{workload_file}_data.csv"
+    path = SENSITIVITY_DIR / workload_file / "data.csv"
     if not os.path.exists(path):
         return res
     with open(path, "r+") as f:
@@ -30,7 +32,8 @@ def _get_sensitivity_data(workload_name: str) -> dict[int, float]:
 
 def _save_sensitivity_data(workload_name: str, sensitivity: dict[int, float]):
     benchmark_file = workload_name.replace(".", "_")
-    with open(f"{RESULTS_PATH}/sensitivity/{benchmark_file}_data.csv", "w+") as f:
+    path = SENSITIVITY_DIR / f"{benchmark_file}_data.csv"
+    with open(path, "w+") as f:
         f.write("footprint_mb perf\n")
         for k, v in sensitivity.items():
             f.write(f"{k} {v}\n")
@@ -55,22 +58,28 @@ def _profile_sensitivity_dial(workload: Workload, size_mb: int) -> float:
     finally:
         bubble.stop()
 
-def _profile_contentiousness(workload: Workload):
+def _profile_contentiousness(workload: Workload, reporter: rp.Reporter):
         workload.run(constants.WORKLOAD_IN_BACKGROUND_CORES)
         try:
             time.sleep(20)
-            return reporter.run_reporter(REPORTER_CORES)
+            return reporter.run(REPORTER_CORES)
         finally:
             workload.stop()
 
 def _save_contentiousness_data(data: dict[str, dict[str,str]]):
     df = pd.DataFrame.from_dict(data, orient="index")
-    df.to_csv(f"{RESULTS_PATH}/contentiousness.csv", sep=" ")
+    df.to_csv(f"{constants.RESULTS_DIR}/contentiousness.csv", sep=" ")
 
-def profile_workloads(workloads: list[Workload]) -> None:
-    contentiousness = {}
+def profile_sensitivity(workloads: list[Workload]) -> None:
+    
+    if not os.path.isdir(SENSITIVITY_DIR):
+        os.mkdir(SENSITIVITY_DIR)
     for workload in workloads:
         _profile_sensitivity(workload)
+    
+
+def profile_contentiousness(workloads: list[Workload], reporter: rp.Reporter) -> None:
+    contentiousness = {}
     for workload in workloads:
-        contentiousness[workload.name] = _profile_contentiousness(workload)
-    _save_contentiousness_data(contentiousness)
+        contentiousness[workload.name] = _profile_contentiousness(workload, reporter)
+        _save_contentiousness_data(contentiousness)
