@@ -1,0 +1,83 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    release: kube-prom-stack
+  name: techflex-planner
+spec:
+  jobLabel: techflex-planner
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - interval: 15s
+    port: metrics-port
+  selector:
+    matchLabels:
+      app: planner
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: planner
+  name: plannerservice
+spec:
+  clusterIP: None
+  ports:
+  - name: metrics-port
+    port: 9601
+  - name: zmq-port
+    port: 5501
+  selector:
+    app: planner
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: planner
+    project: techflex
+  name: plannerservice
+spec:
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planner
+  serviceName: plannerservice
+  template:
+    metadata:
+      labels:
+        app: planner
+    spec:
+      containers:
+      - env:
+        - name: PUBSUB_DISCOVERY_ETCD_SERVER_IP
+          value: etcd
+        - name: PSA_IP
+          value: plannerservice
+        - name: OTEL_COLLECTOR_URL
+          value: otelcollector:4318/v1/traces
+        - name: PSA_ZMQ_DEFAULT_BASE_PORT
+          value: '5501'
+        - name: PSA_ZMQ_DEFAULT_MAX_PORT
+          value: '5501'
+        image: ci.tno.nl:4567/techflex/techflex-delivery/plannerservice_cnt-debug
+        imagePullPolicy: Always
+        name: plannerservice-app
+        ports:
+        - containerPort: 9601
+          name: metrics-port
+        - containerPort: 5501
+          name: zmq-port
+        stdin: true
+        tty: true
+      imagePullSecrets:
+      - name: tno-registry
+      nodeSelector:
+        kubernetes.io/hostname: archview01
+      tolerations:
+      - effect: NoSchedule
+        key: project
+        operator: Equal
+        value: archviews

@@ -1,0 +1,86 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    release: kube-prom-stack
+  name: techflex-mealpreparing
+spec:
+  jobLabel: techflex-mealpreparing
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - interval: 15s
+    port: metrics-port
+  selector:
+    matchLabels:
+      app: mealpreparing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: '9603'
+    prometheus.io/scrape: 'true'
+  labels:
+    app: mealpreparing
+  name: mealpreparingservice
+spec:
+  clusterIP: None
+  ports:
+  - name: metrics-port
+    port: 9603
+  - name: zmq-port
+    port: 5501
+  selector:
+    app: mealpreparing
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: mealpreparing
+    project: techflex
+  name: mealpreparingservice
+spec:
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mealpreparing
+  serviceName: mealpreparingservice
+  template:
+    metadata:
+      labels:
+        app: mealpreparing
+    spec:
+      containers:
+      - env:
+        - name: PUBSUB_DISCOVERY_ETCD_SERVER_IP
+          value: etcd
+        - name: PSA_IP
+          value: mealpreparingservice
+        - name: OTEL_COLLECTOR_URL
+          value: otelcollector:4318/v1/traces
+        - name: PSA_ZMQ_DEFAULT_BASE_PORT
+          value: '5501'
+        - name: PSA_ZMQ_DEFAULT_MAX_PORT
+          value: '5501'
+        image: ci.tno.nl:4567/techflex/techflex-delivery/mealpreparingservice_cnt-debug
+        imagePullPolicy: Always
+        name: mealpreparingservice-app
+        ports:
+        - containerPort: 9603
+          name: metrics-port
+        - containerPort: 5501
+          name: zmq-port
+        stdin: true
+        tty: true
+      imagePullSecrets:
+      - name: tno-registry
+      nodeSelector:
+        kubernetes.io/hostname: archview01
+      tolerations:
+      - effect: NoSchedule
+        key: project
+        operator: Equal
+        value: archviews

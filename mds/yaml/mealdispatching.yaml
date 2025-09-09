@@ -1,0 +1,83 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    release: kube-prom-stack
+  name: techflex-mealdispatching
+spec:
+  jobLabel: techflex-mealdispatching
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - interval: 15s
+    port: metrics-port
+  selector:
+    matchLabels:
+      app: mealdispatching
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mealdispatching
+  name: mealdispatchingservice
+spec:
+  clusterIP: None
+  ports:
+  - name: metrics-port
+    port: 9602
+  - name: zmq-port
+    port: 5501
+  selector:
+    app: mealdispatching
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: mealdispatching
+    project: techflex
+  name: mealdispatchingservice
+spec:
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mealdispatching
+  serviceName: mealdispatchingservice
+  template:
+    metadata:
+      labels:
+        app: mealdispatching
+    spec:
+      containers:
+      - env:
+        - name: PUBSUB_DISCOVERY_ETCD_SERVER_IP
+          value: etcd
+        - name: PSA_IP
+          value: mealdispatchingservice
+        - name: OTEL_COLLECTOR_URL
+          value: otelcollector:4318/v1/traces
+        - name: PSA_ZMQ_DEFAULT_BASE_PORT
+          value: '5501'
+        - name: PSA_ZMQ_DEFAULT_MAX_PORT
+          value: '5501'
+        image: ci.tno.nl:4567/techflex/techflex-delivery/mealdispatchingservice_cnt-debug
+        imagePullPolicy: Always
+        name: mealdispatchingservice-app
+        ports:
+        - containerPort: 9602
+          name: metrics-port
+        - containerPort: 5501
+          name: zmq-port
+        stdin: true
+        tty: true
+      imagePullSecrets:
+      - name: tno-registry
+      nodeSelector:
+        kubernetes.io/hostname: archview01
+      tolerations:
+      - effect: NoSchedule
+        key: project
+        operator: Equal
+        value: archviews
