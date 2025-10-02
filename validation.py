@@ -1,20 +1,16 @@
 import json
-import spec
 import os
-import random
 import csv
 import time
-from typing import Union
+from typing import Union, List
 from collections import namedtuple
 import constants
-
-SPEC_SIZE = "train"
+from workload import Workload
 
 Prediction = namedtuple("Prediction", ("name1", "name2", "expected1", "expected2"))
 ValidatedPrediction = namedtuple(
     "ValidatedPrediction", Prediction._fields + ("actual1", "actual2")
 )
-
 
 def get_key(prediction: Union[Prediction, ValidatedPrediction]) -> str:
     return f"{prediction.name1} + {prediction.name2}"
@@ -28,26 +24,18 @@ def read_predictions() -> list[Prediction]:
             for p in data
         ]
 
-
-def profile_pair(primary: str, competitor: str) -> float:
-    print(f"Starting profiling for pair ({primary}, {competitor})")
-    isolated_perf = spec.run_benchmark(
-        primary, constants.WORKLOAD_UNDER_PROFILING_CORES, SPEC_SIZE
-    )
+def profile_pair(primary: Workload, competitor: Workload) -> float:
+    print(f"Starting profiling for pair ({primary.name}, {competitor.name})")
+    isolated_perf = primary.profile(constants.WORKLOAD_UNDER_PROFILING_CORES)
     print(isolated_perf)
-    competitor_proc = spec.run_background_benchmark(
-        competitor, constants.WORKLOAD_IN_BACKGROUND_CORES, SPEC_SIZE
-    )
+    competitor.run_in_background(constants.WORKLOAD_IN_BACKGROUND_CORES)
     time.sleep(20)
     try:
-        perf = spec.run_benchmark(
-            primary, constants.WORKLOAD_UNDER_PROFILING_CORES, SPEC_SIZE
-        )
+        perf = primary.profile(constants.WORKLOAD_UNDER_PROFILING_CORES)
         print(perf)
         return isolated_perf / perf
     finally:
-        spec.stop_benchmark(competitor_proc)
-
+        competitor.stop()
 
 def read_snapshot() -> dict[str, ValidatedPrediction]:
     if not os.path.exists(VALIDATION_FILE):
@@ -61,9 +49,11 @@ def read_snapshot() -> dict[str, ValidatedPrediction]:
         return data
 
 
-def validate_prediction(prediction: Prediction):
-    actual1 = profile_pair(prediction.name1, prediction.name2)
-    actual2 = profile_pair(prediction.name2, prediction.name1)
+def validate_prediction(prediction: Prediction, workload_map: dict[str, Workload]):
+    workload1 = workload_map[prediction.name1]
+    workload2 = workload_map[prediction.name2]
+    actual1 = profile_pair(workload1, workload2)
+    actual2 = profile_pair(workload2, workload1)
     return ValidatedPrediction(actual1=actual1, actual2=actual2, *prediction)
 
 
@@ -76,9 +66,10 @@ def writerow_and_sync(f, writer, row):
     os.fsync(f.fileno())  # force OS to write to disk
 
 
-def validate_predictions():
+def validate_predictions(workloads: List[Workload]):
     snapshot = read_snapshot()
     predictions = read_predictions()
+    workload_map = {w.name: w for w in workloads}
     with open(VALIDATION_FILE, "a+") as f:
         f.seek(0)
         is_empty = f.read(1) == ""
@@ -93,7 +84,7 @@ def validate_predictions():
             key = get_key(p)
             if key in snapshot:
                 continue
-            row = validate_prediction(p)
+            row = validate_prediction(p, workload_map)
             writerow_and_sync(f, writer, row)
 
 
@@ -134,5 +125,6 @@ def update():
 
 if __name__ == "__main__":
     # main()
-    validate_predictions()
+    # validate_predictions()
     # update()
+    pass

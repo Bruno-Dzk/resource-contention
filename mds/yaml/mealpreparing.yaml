@@ -1,15 +1,12 @@
 apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
+kind: ServiceMonitor
 metadata:
+  name: mealpreparing-monitor
   labels:
-    release: kube-prom-stack
-  name: techflex-mealpreparing
+    app: mealpreparingservice
 spec:
-  jobLabel: techflex-mealpreparing
-  namespaceSelector:
-    any: true
-  podMetricsEndpoints:
-  - interval: 15s
+  endpoints:
+  - interval: 1s
     port: metrics-port
   selector:
     matchLabels:
@@ -28,7 +25,7 @@ spec:
   clusterIP: None
   ports:
   - name: metrics-port
-    port: 9603
+    port: 9602
   - name: zmq-port
     port: 5501
   selector:
@@ -65,22 +62,15 @@ spec:
           value: '5501'
         - name: PSA_ZMQ_DEFAULT_MAX_PORT
           value: '5501'
-        image: ci.tno.nl:4567/techflex/techflex-delivery/mealpreparingservice_cnt-debug
+        image: ghcr.io/bruno-uva/mealpreparing:latest
         imagePullPolicy: Always
         name: mealpreparingservice-app
         ports:
-        - containerPort: 9603
+        - containerPort: 9602
           name: metrics-port
         - containerPort: 5501
           name: zmq-port
         stdin: true
         tty: true
       imagePullSecrets:
-      - name: tno-registry
-      nodeSelector:
-        kubernetes.io/hostname: archview01
-      tolerations:
-      - effect: NoSchedule
-        key: project
-        operator: Equal
-        value: archviews
+      - name: ghcr-pull-secret

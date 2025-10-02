@@ -1,15 +1,12 @@
 apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
+kind: ServiceMonitor
 metadata:
+  name: mealdispatching-monitor
   labels:
-    release: kube-prom-stack
-  name: techflex-mealdispatching
+    app: mealdispatchingservice
 spec:
-  jobLabel: techflex-mealdispatching
-  namespaceSelector:
-    any: true
-  podMetricsEndpoints:
-  - interval: 15s
+  endpoints:
+  - interval: 1s
     port: metrics-port
   selector:
     matchLabels:
@@ -25,7 +22,7 @@ spec:
   clusterIP: None
   ports:
   - name: metrics-port
-    port: 9602
+    port: 9603
   - name: zmq-port
     port: 5501
   selector:
@@ -62,22 +59,15 @@ spec:
           value: '5501'
         - name: PSA_ZMQ_DEFAULT_MAX_PORT
           value: '5501'
-        image: ci.tno.nl:4567/techflex/techflex-delivery/mealdispatchingservice_cnt-debug
+        image: ghcr.io/bruno-uva/mealdispatching:latest
         imagePullPolicy: Always
         name: mealdispatchingservice-app
         ports:
-        - containerPort: 9602
+        - containerPort: 9603
           name: metrics-port
         - containerPort: 5501
           name: zmq-port
         stdin: true
         tty: true
       imagePullSecrets:
-      - name: tno-registry
-      nodeSelector:
-        kubernetes.io/hostname: archview01
-      tolerations:
-      - effect: NoSchedule
-        key: project
-        operator: Equal
-        value: archviews
+      - name: ghcr-pull-secret

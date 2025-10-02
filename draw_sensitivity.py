@@ -3,20 +3,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import pathlib
 
 import constants
+
 
 def main():
     labels, dfs = get_data()
 
     n = len(dfs)
-    cols = 7 #math.ceil(math.sqrt(n))
+    cols = math.ceil(math.sqrt(n))
     rows = math.ceil(n / cols)
 
     fig, axes = plt.subplots(
         nrows=rows,
         ncols=cols,
-        figsize=(16,7),
+        figsize=(cols * 3, rows * 3),
         sharex=True,
         sharey=True,
     )
@@ -28,7 +30,7 @@ def main():
 
     for ax, df, label in zip(axes, dfs, labels):
         # Normalize the series
-        df['perf'] = df['perf'][0] / df['perf']
+        df["perf"] = df["perf"][0] / df["perf"]
         ax.plot(df["footprint_mb"], df["perf"], marker="o", markersize=4)
         ax.set_title(label)
         ax.set_xlabel("MemBW footprint (MB)")
@@ -42,15 +44,16 @@ def main():
         fig.delaxes(ax)
 
     plt.tight_layout()
-    output_path = f"{constants.RESULTS_DIR}/sensitivity.png"
-    plt.savefig(output_path, dpi=300)
+    image_output_path = pathlib.Path(constants.RESULTS_DIR) / "sensitivity.png"
+    plt.savefig(image_output_path, dpi=300)
     plt.close()
 
 
 def get_data() -> tuple[list[str], list[pd.DataFrame]]:
-    csv_files = [f"{constants.RESULTS_DIR}/sensitivity/" + f for f in os.listdir(f"{constants.RESULTS_DIR}/sensitivity") if f.endswith(".csv")]
-    labels = [f.split("_")[2] for f in csv_files]
-    dfs = [pd.read_csv(f, delimiter=" ") for f in csv_files]
+    parent_dir = pathlib.Path(constants.RESULTS_DIR) / "sensitivity"
+    csv_paths = [parent_dir / f for f in os.listdir(parent_dir) if f.endswith(".csv")]
+    labels = [p.parts[3].split('_')[0] for p in csv_paths]
+    dfs = [pd.read_csv(p, delimiter=" ") for p in csv_paths]
     return labels, dfs
 
 

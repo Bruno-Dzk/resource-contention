@@ -1,7 +1,4 @@
-import os
-import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 import math
 import csv
 
@@ -13,10 +10,6 @@ def construct_sensitivity_lookup():
         reader = csv.reader(f, delimiter=" ")
         next(reader)
         for row in reader:
-            # Average the stream and rand values
-            # perf = (float(row[1]) + float(row[2])) / 2
-            # Get max of stream and rand
-            # perf =  max(float(row[1]), float(row[2]))
             perf = float(row[1])
             # We perform reverse lookup, that is we find dial from performance
             dial = int(row[0])
@@ -58,17 +51,11 @@ def generate_scores():
     print(data)
     save_contentiousness(data)
 
-        # Extract keys and values
+    # Extract keys and values
     labels = list(data.keys())
     values = list(data.values())
 
     values, labels = zip(*sorted(zip(values, labels)))
-
-    labels = [
-        l.replace('.', '_').split('_')[1]
-        for l
-        in labels
-    ]
 
     # Create the column chart
     plt.figure(figsize=(20, 12))

@@ -3,7 +3,15 @@ import profile_reporter
 import contentiousness
 import prediction
 import validation
+import time
+import pathlib
 from spec import SpecWorkload
+from mds import MdsFactory, MdsClient
+from kube_workload import KubeWorkload
+from typing import List
+import logging
+from cpu_freq import CpuFreqPolicy, Governor
+from typing import Callable
 
 import reporter as rp
 
@@ -29,15 +37,43 @@ SPEC_NAMES = [
     "654.roms_s",
 ]
 
+MDS_SERVICES = ["datatest", "dataforwarding", "datageneration", "etcd"]
+
+MDS_UNDER_PROFILING = ["datatest", "dataforwarding", "datageneration"]
+
+GOVERNOR = Governor.USERSPACE
+
 def main():
-    profile_reporter.profile_reporter()
-    workloads = [SpecWorkload(name, size="train") for name in SPEC_NAMES]
-    profile_workload.profile_sensitivity(workloads)
+    print("HELLO")
+    # logging.getLogger().setLevel(logging.DEBUG)
+
+    # mds_factory = MdsFactory()
+    # all_workloads: List[KubeWorkload] = [
+    #     mds_factory.create_workload(name) for name in MDS_SERVICES
+    # ]
+    # for workload in all_workloads:
+    #     workload.setup()
+    # workloads = [w for w in all_workloads if w.name in MDS_UNDER_PROFILING]
+    # workloads_under_profiling = [w for w in workloads if w.name in MDS_UNDER_PROFILING]
+    # profile_workload.profile_sensitivity(workloads_under_profiling)
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+    CpuFreqPolicy.set_governor(GOVERNOR)
+    spec_experiment()
+    CpuFreqPolicy.reset_governor()
+    
+def spec_experiment():
+    # SPEC 
+    workloads = [SpecWorkload(name) for name in SPEC_NAMES]
     reporter = rp.AveragingReporter("reporters/reporter")
+    profile_reporter.profile_reporter(reporter)
+    profile_workload.profile_sensitivity(workloads)
     profile_workload.profile_contentiousness(workloads, reporter)
     contentiousness.generate_scores()
     prediction.calculate_predictions()
-    validation.validate_predictions()
+    validation.validate_predictions(workloads)
+    # for wokload in all_workloads:
+    #     wokload.tear_down()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

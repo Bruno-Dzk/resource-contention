@@ -1,0 +1,30 @@
+@namespace("nl.esi.techflex.delivery")
+@version("1.0.0")
+protocol types {
+    
+
+    record DataTransportType{
+        array<long> dataList;
+    }
+
+    record DataRequest{
+        string id;
+        DataTransportType data;
+    }
+
+    record DataGenerationNotification{
+        string id;
+        DataTransportType data;
+    }
+
+    record DataForwardNotification{
+        string id;
+        DataTransportType data;
+    }
+
+    record DataReductionNotification{
+        string id;
+        DataTransportType data;
+    }
+
+}

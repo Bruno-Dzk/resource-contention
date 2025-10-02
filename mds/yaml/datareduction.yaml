@@ -1,15 +1,12 @@
 apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
+kind: ServiceMonitor
 metadata:
+  name: datareductionservice-monitor
   labels:
-    release: kube-prom-stack
-  name: techflex-datareduction
+    app: datareductionservice
 spec:
-  jobLabel: techflex-datareduction
-  namespaceSelector:
-    any: true
-  podMetricsEndpoints:
-  - interval: 15s
+  endpoints:
+  - interval: 1s
     port: metrics-port
   selector:
     matchLabels:
@@ -62,7 +59,7 @@ spec:
           value: '5501'
         - name: PSA_ZMQ_DEFAULT_MAX_PORT
           value: '5501'
-        image: ci.tno.nl:4567/techflex/techflex-delivery/datareductionservice_cnt-debug
+        image: ghcr.io/bruno-uva/datareduction:latest
         imagePullPolicy: Always
         name: datareductionservice-app
         ports:

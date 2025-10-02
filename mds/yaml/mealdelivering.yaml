@@ -1,16 +1,13 @@
 apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
+kind: ServiceMonitor
 metadata:
+  name: mealdeliveringservice-monitor
   labels:
-    release: kube-prom-stack
-  name: techflex-mealdelivering
+    app: mealdeliveringservice
 spec:
-  jobLabel: techflex-mealdelivering
-  namespaceSelector:
-    any: true
-  podMetricsEndpoints:
-  - interval: 15s
-    port: metrics-port
+  endpoints:
+  - interval: 1s
+    port: app-metrics-port
   selector:
     matchLabels:
       app: mealdelivering
@@ -62,7 +59,7 @@ spec:
           value: '5501'
         - name: PSA_ZMQ_DEFAULT_MAX_PORT
           value: '5501'
-        image: ci.tno.nl:4567/techflex/techflex-delivery/mealdeliveringservice_cnt-debug
+        image: ghcr.io/bruno-uva/mealdelivering:latest
         imagePullPolicy: Always
         name: mealdeliveringservice-app
         ports:
@@ -73,11 +70,4 @@ spec:
         stdin: true
         tty: true
       imagePullSecrets:
-      - name: tno-registry
-      nodeSelector:
-        kubernetes.io/hostname: archview01
-      tolerations:
-      - effect: NoSchedule
-        key: project
-        operator: Equal
-        value: archviews
+      - name: ghcr-pull-secret

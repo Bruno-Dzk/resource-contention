@@ -4,3 +4,4 @@ black
 matplotlib
 jinja2
 kubernetes
+websockets

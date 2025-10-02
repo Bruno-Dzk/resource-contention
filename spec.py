@@ -9,10 +9,10 @@ class SpecWorkload(Workload):
         self.proc = None
         super().__init__(name)
 
-    def run_once(self, cores: str) -> float:
+    def profile(self, cores: str) -> float:
         return run_benchmark(self.name, cores, self.size)
 
-    def run(self, cores: str) -> None:
+    def run_in_background(self, cores: str) -> None:
         self.proc = run_background_benchmark(self.name, cores, self.size)
 
     def stop(self) -> None:

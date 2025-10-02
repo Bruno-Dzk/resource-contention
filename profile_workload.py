@@ -50,16 +50,16 @@ def _profile_sensitivity(workload: Workload) -> str:
 def _profile_sensitivity_dial(workload: Workload, size_mb: int) -> float:
     if size_mb == 0:
         print("Profiling in isolation")
-        return workload.run_once(constants.WORKLOAD_UNDER_PROFILING_CORES)
+        return workload.profile(constants.WORKLOAD_UNDER_PROFILING_CORES)
     bubble = Bubble(size_mb)
     bubble.run()
     try:
-        return workload.run_once(constants.WORKLOAD_UNDER_PROFILING_CORES)
+        return workload.profile(constants.WORKLOAD_UNDER_PROFILING_CORES)
     finally:
         bubble.stop()
 
 def _profile_contentiousness(workload: Workload, reporter: rp.Reporter):
-        workload.run(constants.WORKLOAD_IN_BACKGROUND_CORES)
+        workload.run_in_background(constants.WORKLOAD_IN_BACKGROUND_CORES)
         try:
             time.sleep(20)
             return reporter.run(REPORTER_CORES)
