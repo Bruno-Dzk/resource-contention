@@ -48,7 +48,7 @@ def run_benchmark(name: str, cores: str, size: str) -> float:
     proc = subprocess.run(
         [
             "sudo",
-            "nice",
+            "nice",dsad
             "-n",
             "-20",
             "taskset",

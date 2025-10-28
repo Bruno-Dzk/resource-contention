@@ -52,7 +52,7 @@ def main():
 def get_data() -> tuple[list[str], list[pd.DataFrame]]:
     parent_dir = pathlib.Path(constants.RESULTS_DIR) / "sensitivity"
     csv_paths = [parent_dir / f for f in os.listdir(parent_dir) if f.endswith(".csv")]
-    labels = [p.parts[3].split('_')[0] for p in csv_paths]
+    labels = [p.parts[3].split('_')[1] for p in csv_paths]
     dfs = [pd.read_csv(p, delimiter=" ") for p in csv_paths]
     return labels, dfs
 

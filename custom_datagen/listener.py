@@ -1,13 +1,37 @@
 import asyncio
 import websockets
+import avro.schema
+import avro.io
+import io
 
-message_count = 0
+DATAGEN_SCHEMA ='''
+	{
+	"type": "record",
+	"name": "DataGenerationNotification",
+	"namespace": "nl.esi.techflex.delivery",
+	"fields": [
+		{ "name": "id", "type": "string" },
+		{ "name": "data", "type": {
+			"type": "record",
+			"name": "DataTransportType",
+			"fields": [
+			{ "name": "dataList", "type": { "type":"array", "items":"long" } }
+			]
+		}
+		}
+	]
+	}
+'''
 
-async def handler(websocket, path):
-    global message_count
+schema = avro.schema.parse(DATAGEN_SCHEMA)
+
+async def handler(websocket: websockets.ClientConnection):
     async for message in websocket:
-        message_count += 1
-        print(f"Received message {message_count}: {message}")
+        bytes_reader = io.BytesIO(message)
+        decoder = avro.io.BinaryDecoder(bytes_reader)
+        reader = avro.io.DatumReader(schema)
+        notification = reader.read(decoder)
+        print(notification["id"])
 
 async def main():
     async with websockets.serve(handler, "localhost", 3000):

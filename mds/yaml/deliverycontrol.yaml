@@ -61,9 +61,9 @@ spec:
         - name: deliverycontrolservice-app
           image: ghcr.io/bruno-uva/deliverycontrol:latest
           imagePullPolicy: "Always"
-          resources:
-            stdin: true
-            tty: true
+          # resources:
+          #   stdin: true
+          #   tty: true
           ports:
             ## Omitted
             - containerPort: 9600

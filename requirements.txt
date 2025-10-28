@@ -5,3 +5,5 @@ matplotlib
 jinja2
 kubernetes
 websockets
+avro
+fastavro

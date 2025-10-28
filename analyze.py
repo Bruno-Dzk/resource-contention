@@ -11,6 +11,8 @@ def sort_df(df: pd.DataFrame) -> pd.DataFrame:
     return df_aligned.reindex(index=order)
 
 def strip_name(n: str) -> str:
+    if n.find("_") == -1:
+        return n
     return n.split(sep='.')[1].split(sep='_')[0]
 
 def main():

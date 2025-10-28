@@ -41,7 +41,7 @@ MDS_SERVICES = ["datatest", "dataforwarding", "datageneration", "etcd"]
 
 MDS_UNDER_PROFILING = ["datatest", "dataforwarding", "datageneration"]
 
-GOVERNOR = Governor.USERSPACE
+GOVERNOR = Governor.PERFORMANCE
 
 def main():
     print("HELLO")
@@ -76,4 +76,9 @@ def spec_experiment():
     #     wokload.tear_down()
 
 if __name__ == "__main__":
-    main()
+    mds_factory = MdsFactory()
+    all_workloads: List[KubeWorkload] = [
+        mds_factory.create_workload(name) for name in MDS_SERVICES
+    ]
+    for workload in all_workloads:
+        workload.setup()
