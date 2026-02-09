@@ -1,10 +1,11 @@
 from workload import Workload
 from kube_controller import KubeController
+from load_generator import LoadGenerator
 from typing import Optional
 from metrics import query_latency
 import pathlib
 import time
-
+import asyncio
 
 class KubeWorkload(Workload):
     PROFILING_NODE_NAME = "mc-c6"
@@ -18,12 +19,14 @@ class KubeWorkload(Workload):
         is_required: bool,
         profiling_time_s: int,
         metric_name: Optional[str] = None,
+        load_generator: Optional[LoadGenerator] = None
     ):
         self.controller = controller
         self.is_required = is_required
         self.yaml_path = yaml_path
         self.profiling_time_s = profiling_time_s
         self.metric_name = metric_name
+        self.load_generator = load_generator
         self.deployed_on: Optional[str] = None
         super().__init__(name)
 
@@ -37,35 +40,35 @@ class KubeWorkload(Workload):
     def tear_down(self):
         self.controller.remove_application(self.name)
 
-    def _deploy_on_profiling_node(self) -> None:
-        if self.deployed_on == KubeWorkload.PROFILING_NODE_NAME:
+    def _deploy_on_node(self, target_node: str) -> None:
+        if self.deployed_on == target_node:
             return
         if self.deployed_on is not None:
             self.controller.remove_application(self.name)
         self.controller.deploy_application(
-            self.name, self.yaml_path, KubeWorkload.PROFILING_NODE_NAME
+            self.name, self.yaml_path, target_node
         )
-        self.deployed_on = KubeWorkload.PROFILING_NODE_NAME
+        self.deployed_on = target_node
 
     def profile(self, cores: str) -> float:
+        if not self.metric_name:
+                raise Exception(f"Profiling of workload {self.name} is not supported")
         try:
-            self._deploy_on_profiling_node()
+            self._deploy_on_node(KubeWorkload.PROFILING_NODE_NAME)
             # Wait for the microservices to be ready
             time.sleep(120)
-            if not self.metric_name:
-                raise Exception(f"Profiling of workload {self.name} is not supported")
+            if self.load_generator:
+                asyncio.run(self.load_generator.generate())
             time.sleep(self.profiling_time_s)
             return query_latency(self.metric_name, self.profiling_time_s)
         finally:
             self.stop()
 
     def run_in_background(self, cores) -> None:
-        if self.deployed_on != KubeWorkload.PROFILING_NODE_NAME:
-            self._deploy_on_profiling_node()
+        self._deploy_on_node(KubeWorkload.PROFILING_NODE_NAME)
 
     def stop(self) -> None:
-        self.controller.remove_application(self.name)
         if self.is_required:
-            self.controller.deploy_application(
-                self.name, self.yaml_path, KubeWorkload.REMOTE_NODE_NAME
-            )
+            self._deploy_on_node(KubeWorkload.REMOTE_NODE_NAME)
+        else:
+            self.controller.remove_application(self.name)

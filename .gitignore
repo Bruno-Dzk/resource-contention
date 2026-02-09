@@ -1,7 +1,7 @@
 benchmark
 venv
 .DS_Store
-sledge
+build/
 spec-cmd.log
 __pycache__/
 *.py[cod]

@@ -2,7 +2,6 @@ import subprocess
 import os
 import pandas as pd
 import time
-from collections import defaultdict
 import spec
 import constants
 

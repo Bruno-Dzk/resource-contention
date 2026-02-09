@@ -4,11 +4,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+BUILD_DIR = "build"
+
 class Sledge():    
     ELEM_SIZE = 8
 
     def __init__(self, size_mb: int):
         self.size = size_mb * 1_000_000 // Sledge.ELEM_SIZE
+        os.makedirs(BUILD_DIR, exist_ok=True)
         subprocess.run(
             [
                 "gcc",
@@ -17,7 +20,7 @@ class Sledge():
                 f"-DLBM_SIZE={self.size}",
                 "sledge.c",
                 "-o",
-                "sledge",
+                f"{BUILD_DIR}/sledge.out",
             ],
             stdin=subprocess.DEVNULL,
         )
@@ -34,7 +37,7 @@ class Sledge():
                 "taskset",
                 "-c",
                 f"{cores}",
-                "./sledge",
+                f"./{BUILD_DIR}/sledge.out",
             ],
             stdin=subprocess.DEVNULL,
         )
@@ -50,6 +53,7 @@ class Bubble():
 
     def __init__(self, size_mb: int):
         self.size = size_mb * 1_000_000 // Bubble.ELEM_SIZE
+        os.makedirs(BUILD_DIR, exist_ok=True)
         subprocess.run(
             [
                 "gcc",
@@ -61,7 +65,7 @@ class Bubble():
                 "-DNUM_THREADS=3",
                 "bubble.c",
                 "-o",
-                "bubble_stream",
+                f"{BUILD_DIR}/bubble_stream.out",
             ],
             stdin=subprocess.DEVNULL,
         )
@@ -76,7 +80,7 @@ class Bubble():
                 "-DNUM_THREADS=2",
                 "bubble.c",
                 "-o",
-                "bubble_rand",
+                f"{BUILD_DIR}/bubble_rand.out",
             ],
             stdin=subprocess.DEVNULL,
         )
@@ -94,7 +98,7 @@ class Bubble():
                 "taskset",
                 "-c",
                 "3-5",
-                "./bubble_stream",
+                f"./{BUILD_DIR}/bubble_stream.out",
             ],
             stdin=subprocess.DEVNULL,
         )
@@ -107,7 +111,7 @@ class Bubble():
                 "taskset",
                 "-c",
                 "6-7",
-                "./bubble_rand",
+                f"./{BUILD_DIR}/bubble_rand.out",
             ],
             stdin=subprocess.DEVNULL,
         )
