@@ -25,14 +25,14 @@ chmod 700 compileReporters.sh
 ```
 
 ## Kubernetes setup
-1. Install (MicroK8S)[https://canonical.com/microk8s/docs/getting-started] on two nodes 
+1. Install [MicroK8S](https://canonical.com/microk8s/docs/getting-started) on two nodes 
 1. Create a multi-node cluster (https://canonical.com/microk8s/docs/clustering)
 1. Set registry secret
 ```
 cd mds
 ./setRegistrySecret.sh <docker-username> <docker-password> <docker-email>
 ```
-4. Follow [prometheus/runbook.md] to setup Prometheus
+4. Follow [prometheus/runbook.md](prometheus/runbok.md) to setup Prometheus
 
 ## Running experiments
 Adjust config in `constants.py`. Experiment configuration-as-code can be done in `main.py`.
