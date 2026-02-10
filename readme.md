@@ -44,8 +44,8 @@ Run:
 ```shell
 screen
 python main.py
-screen -d
 ```
+And detach the screen with ctrl-a ctrl-d
 
 You can kill the screen after experiment is done:
 ```shell
