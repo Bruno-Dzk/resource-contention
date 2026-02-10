@@ -27,7 +27,7 @@ class Sledge():
         self.proc = None
 
     def run(self, cores: str) -> None:
-        print(f"Running sledge with footprint size {self.size}")
+        logger.info(f"Running sledge with footprint size {self.size}")
         self.proc = subprocess.Popen(
             [
                 "sudo",
@@ -88,7 +88,7 @@ class Bubble():
         self.proc2 = None
 
     def run(self) -> None:
-        print(f"Running bubble with footprint size {self.size}")
+        logger.info(f"Running bubble with footprint size {self.size}")
         self.proc1 = subprocess.Popen(
             [
                 "sudo",

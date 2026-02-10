@@ -25,7 +25,7 @@ static unsigned int data_chunk [RAND_SIZE];
 static double scalar = 3.0;
 static unsigned int dump[10];
 
-void smash(benchmark::State& state) {
+void streaming_access(benchmark::State& state) {
     //std::cout << "STREAM thread: " << state.thread_index() << " executed on CPU: " << sched_getcpu() << std::endl;
     for (auto _ : state) {
         double *mid = bw_data + PADDING_SIZE;
@@ -38,7 +38,7 @@ void smash(benchmark::State& state) {
     }
 }
 
-void rand_smash(benchmark::State& state) {
+void random_access(benchmark::State& state) {
     //std::cout << "RAND thread: " << state.thread_index() << " executed on CPU: " << sched_getcpu() << std::endl;
     for (auto _ : state) {
         lfsr = 0xACE1u;
@@ -58,7 +58,7 @@ void rand_smash(benchmark::State& state) {
     }
 }
 
-BENCHMARK(smash);
-BENCHMARK(rand_smash);
+BENCHMARK(streaming_access);
+BENCHMARK(random_access);
 
 BENCHMARK_MAIN();

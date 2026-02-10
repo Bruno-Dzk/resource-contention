@@ -17,7 +17,7 @@
 typedef double LBMGrid[LBM_SIZE];
 static double * srcGrid, * dstGrid;
 
-void sledge(benchmark::State& state) {
+void hybrid_access(benchmark::State& state) {
     const unsigned long margin = 400000;
     const unsigned long size = sizeof(LBMGrid) + 2 * margin * sizeof(double);
     srcGrid = new double[size];
@@ -49,6 +49,6 @@ void sledge(benchmark::State& state) {
         }
 }
 
-BENCHMARK(sledge);
+BENCHMARK(hybrid_access);
 
 BENCHMARK_MAIN();

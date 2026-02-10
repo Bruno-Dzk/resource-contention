@@ -1,8 +1,12 @@
+import logging
 import matplotlib.pyplot as plt
 import math
 import csv
 
 import constants
+
+logger = logging.getLogger(__name__)
+
 
 def construct_sensitivity_lookup():
     res = []
@@ -48,7 +52,7 @@ def generate_scores():
         dial = find_dial(perf, lookup)
         data[bench] = dial
 
-    print(data)
+    logger.info(str(data))
     save_contentiousness(data)
 
     # Extract keys and values

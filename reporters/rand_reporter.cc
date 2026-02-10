@@ -12,7 +12,7 @@ static unsigned int data_chunk[FOOTPRINT_SIZE];
 static double scalar = 3.0;
 static unsigned int dump[10];
 
-void rand_smash(benchmark::State& state) {
+void random_access(benchmark::State& state) {
     for (auto _ : state) {
         lfsr = 0xACE1u;
         for (int i = 0; i < FOOTPRINT_SIZE / 100; i++) {
@@ -31,6 +31,6 @@ void rand_smash(benchmark::State& state) {
     }
 }
 
-BENCHMARK(rand_smash);
+BENCHMARK(random_access);
 
 BENCHMARK_MAIN();

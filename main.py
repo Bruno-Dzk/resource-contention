@@ -1,3 +1,6 @@
+import os
+import logging
+import constants
 import profile_workload
 import profile_reporter
 import contentiousness
@@ -7,11 +10,12 @@ from spec import SpecWorkload
 from mds import MdsFactory
 from kube_workload import KubeWorkload
 from typing import List
-import logging
 from cpu_freq import CpuFreqPolicy, Governor
 
 import reporter as rp
 from workload import Workload
+
+logger = logging.getLogger(__name__)
 
 SPEC_NAMES = [
     "600.perlbench_s",
@@ -44,9 +48,14 @@ SPEC_COMPETITORS = [
     "619.lbm_s"
 ]
 
-MDS_SERVICES = ["datatest", "dataforwarding", "datageneration", "etcd"]
+MDS_SERVICES = ["datatest", "dataforwarding", "datageneration"]
 
-MDS_UNDER_PROFILING = ["datatest", "dataforwarding", "datageneration"]
+REPORTER_SCRIPT_FILES = {
+    "alternating":"build/altern_reporter.out",
+    "hybrid":"build/hybrid_reporter.out",
+    "random":"build/rand_reporter.out",
+    "streaming":"build/stream_reporter.out"
+}
 
 GOVERNOR = Governor.PERFORMANCE
 
@@ -60,12 +69,13 @@ def conduct_experiment(reporter: rp.Reporter, applications: List[Workload], comp
 
 def spec_experiment():
     workloads = [SpecWorkload(name) for name in SPEC_NAMES]
-    reporter = rp.AveragingReporter("reporters/reporter")
+    reporter = rp.AveragingReporter(REPORTER_SCRIPT_FILES["alternating"])
 
     # We use the same workloads for applications and competitors
     conduct_experiment(reporter, workloads, workloads)
 
 def setup_mds():
+    logger.info("Setting up MDS on the Kubernetes cluster")
     mds_factory = MdsFactory()
     etcd = mds_factory.create_workload("etcd")
     etcd.setup()
@@ -73,16 +83,18 @@ def setup_mds():
     applications = [mds_factory.create_workload(name) for name in MDS_SERVICES]
     for app in applications:
         app.setup()
+    logger.info("MDS setup complete")
     return applications
 
 def mds_experiment():
-    reporter = rp.AveragingReporter("reporters/reporter")
+    reporter = rp.AveragingReporter(REPORTER_SCRIPT_FILES["alternating"])
     applications = setup_mds()
     competitors = [SpecWorkload(name) for name in SPEC_COMPETITORS]
     competitors.extend(applications)
     conduct_experiment(reporter, applications, competitors)
 
 if __name__ == "__main__":
+    os.makedirs(constants.RESULTS_DIR, exist_ok=True)
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     CpuFreqPolicy.set_governor(GOVERNOR)

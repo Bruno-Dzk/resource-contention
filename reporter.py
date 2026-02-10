@@ -1,13 +1,16 @@
 from abc import ABC, abstractmethod
-
+import logging
 import subprocess
+
+logger = logging.getLogger(__name__)
+
 
 class Reporter(ABC):
     def __init__(self, script_file: str):
         self.script_file = script_file
 
     def run(self, cores: str, repetitions: int = 100):
-        print("Profiling with the reporter")
+        logger.info("Profiling with the reporter")
         reporter = subprocess.run(
             [
                 "sudo",
@@ -28,7 +31,7 @@ class Reporter(ABC):
         output = {}
         for line in raw_output.splitlines():
             if "median" in line:
-                print(line.strip())
+                logger.info(line.strip())
                 line = line.split()
                 output[line[0]] = float(line[1])
         return self.process_output(output)

@@ -1,8 +1,12 @@
 import json
+import logging
 import matplotlib.pyplot as plt
 import math
 import textwrap
 import numpy as np
+
+logger = logging.getLogger(__name__)
+
 
 def get_validated():
     with open('results/validated.json', 'r') as f:
@@ -72,9 +76,9 @@ def draw_validation_chart(data, i: int):
     plt.savefig(output_path, dpi=300)
     plt.close()
 
-    print(f"Max error {max_error}")
+    logger.info(f"Max error {max_error}")
     avg_error = sum(errors) / len(errors)
-    print(f"Avg error {avg_error}")
+    logger.info(f"Avg error {avg_error}")
     
 def main():
     data = get_validated()

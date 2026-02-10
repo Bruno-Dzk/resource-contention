@@ -1,7 +1,10 @@
 import subprocess
 import os
+import logging
 
 from workload import Workload
+
+logger = logging.getLogger(__name__)
 
 class SpecWorkload(Workload):
     def __init__(self, name, size="train"):
@@ -21,7 +24,7 @@ class SpecWorkload(Workload):
         os.kill(self.proc.pid, 9)
 
 def run_background_benchmark(name: str, cores: str, size: str) -> subprocess.Popen:
-    print(f"Running {name} in background, size = {size}")
+    logger.info(f"Running {name} in background, size = {size}")
     return subprocess.Popen(
         [
             "sudo",
@@ -44,11 +47,11 @@ def run_background_benchmark(name: str, cores: str, size: str) -> subprocess.Pop
     )
 
 def run_benchmark(name: str, cores: str, size: str) -> float:
-    print(f"Running benchmark {name}, size = {size}")
+    logger.info(f"Running benchmark {name}, size = {size}")
     proc = subprocess.run(
         [
             "sudo",
-            "nice",dsad
+            "nice",
             "-n",
             "-20",
             "taskset",
@@ -63,7 +66,7 @@ def run_benchmark(name: str, cores: str, size: str) -> float:
         stdin=subprocess.DEVNULL,
         capture_output=True,
     )
-    print("Started process")
+    logger.info("Started process")
     try:
         proc.check_returncode()
         output = proc.stdout.decode("utf-8")
@@ -72,7 +75,7 @@ def run_benchmark(name: str, cores: str, size: str) -> float:
 
     except subprocess.CalledProcessError:
         errors = proc.stderr.decode("utf-8")
-        print(errors)
+        logger.error(errors)
         raise Exception("SPEC process ended with non-zero exit code")
     
 def stop_benchmark(proc: subprocess.Popen):

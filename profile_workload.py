@@ -1,18 +1,15 @@
 import os
 import pandas as pd
 import time
+import logging
 from pathlib import Path
 
 import reporter as rp
+
+logger = logging.getLogger(__name__)
 from contention_synthesis import Bubble
 import constants
 from workload import Workload
-
-REPORTER_CORES = "0"
-
-DIAL_START_MB = 0
-DIAL_END_MB = 112
-DIAL_STEP_MB = 4
 
 SENSITIVITY_DIR = Path(constants.RESULTS_DIR) / 'sensitivity'
 
@@ -41,7 +38,7 @@ def _save_sensitivity_data(workload_name: str, sensitivity: dict[int, float]):
 
 def _profile_sensitivity(workload: Workload) -> str:
     sensitivity = _get_sensitivity_data(workload.name)
-    for size_mb in range(DIAL_START_MB, DIAL_END_MB + DIAL_STEP_MB, DIAL_STEP_MB):
+    for size_mb in range(constants.DIAL_START_MB, constants.DIAL_END_MB + constants.DIAL_STEP_MB, constants.DIAL_STEP_MB):
         if size_mb in sensitivity:
             continue
         sensitivity[size_mb] = _profile_sensitivity_dial(workload, size_mb)
@@ -49,7 +46,7 @@ def _profile_sensitivity(workload: Workload) -> str:
 
 def _profile_sensitivity_dial(workload: Workload, size_mb: int) -> float:
     if size_mb == 0:
-        print("Profiling in isolation")
+        logger.info("Profiling in isolation")
         return workload.profile(constants.WORKLOAD_UNDER_PROFILING_CORES)
     bubble = Bubble(size_mb)
     bubble.run()
@@ -62,7 +59,7 @@ def _profile_contentiousness(workload: Workload, reporter: rp.Reporter):
         workload.run_in_background(constants.WORKLOAD_IN_BACKGROUND_CORES)
         try:
             time.sleep(20)
-            return reporter.run(REPORTER_CORES)
+            return reporter.run(constants.REPORTER_CORES)
         finally:
             workload.stop()
 

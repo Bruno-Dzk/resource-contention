@@ -1,4 +1,4 @@
-benchmark
+benchmark/
 venv
 .DS_Store
 build/

@@ -6,7 +6,7 @@ from typing import Union, List
 from collections import namedtuple
 import constants
 from workload import Workload
-from predictor import Prediction
+from prediction import Prediction
 import logging
 
 ValidatedPrediction = namedtuple(
@@ -78,5 +78,5 @@ def validate_predictions(applications: List[Workload], competitors: List[Workloa
             if key in snapshot:
                 continue
             row = validate_prediction(p, workload_map)
-            print(row)
+            logging.info(str(row))
             writerow_and_sync(f, writer, row)

@@ -278,7 +278,7 @@ int main() {
     data_chunk += PADDING_SIZE;
     omp_set_num_threads(NUM_THREADS);
     char *bub_type = BUBBLE_TYPE == 0 ? "stream" : "rand";
-    printf("Type = %s, threads = %d\n", bub_type, NUM_THREADS);
+    printf("Bubble type = %s, threads = %d\n", bub_type, NUM_THREADS);
     if (BUBBLE_TYPE == 0) {
         streaming_access();
     } else {

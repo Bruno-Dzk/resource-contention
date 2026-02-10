@@ -6,7 +6,7 @@
 static double bw_data [STREAM_SIZE + 2 * PADDING_SIZE];
 static double scalar = 3.0;
 
-void smash(benchmark::State& state) {
+void streaming_access(benchmark::State& state) {
     for (auto _ : state) {
         double *mid = bw_data + PADDING_SIZE;
         for (int i = 0; i < STREAM_SIZE / 2; i++) {
@@ -18,6 +18,6 @@ void smash(benchmark::State& state) {
     }
 }
 
-BENCHMARK(smash);
+BENCHMARK(streaming_access);
 
 BENCHMARK_MAIN();
