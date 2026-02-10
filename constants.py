@@ -11,8 +11,8 @@ DIAL_STEP_MB: Final[int] = 4
 DIAL_END_MB: Final[int] = 112
 
 # MDS constants
-MDS_PROFILING_TIME_S: Final[int] = 300
-MDS_STARTUP_WAIT_TIME_S: Final[int] = 120
+MDS_PROFILING_TIME_S: Final[int] = 120
+MDS_STARTUP_WAIT_TIME_S: Final[int] = 30
 
 # Kubernetes workload node names
 PROFILING_NODE_NAME: Final[str] = "mc-c6"
